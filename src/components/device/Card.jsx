@@ -86,7 +86,7 @@ const Card = ({
   const [price, setPrice] = useState(0);
   const [liter, setLiter] = useState(0);
   const checkLiveRef = useRef({
-    nozzle: "",
+    nozzleNo: "",
   });
 
   const regex = /[A-Z]/g;
@@ -119,13 +119,13 @@ const Card = ({
       if (parseInt(data[0]) === parseInt(obj.nozzle_no)) {
         setLiter(parseFloat(data[1])); // assuming liter is a numeric value
         setPrice(parseFloat(data[2])); // assuming price is a numeric value
-        console.log("llllll");
+        // console.log("llllll");
       }
-      console.log(price, liter);
-      console.log(
-        nozzle1FuelDetailRef.current,
-        "----------------------------------------"
-      );
+      // console.log(price, liter);
+      // console.log(
+      //   nozzle1FuelDetailRef.current,
+      //   "----------------------------------------"
+      // );
     }
     if (topic.startsWith("detpos/device/Final/") && /[1-8]$/.test(topic)) {
       close();
@@ -147,7 +147,7 @@ const Card = ({
             setNopermit(false);
           }
         }
-        // checkLiveRef.current.nozzleNo = 0;
+        checkLiveRef.current.nozzleNo = 0;
       }
     }, 200); // Update the values every second
 
@@ -180,7 +180,10 @@ const Card = ({
   //   return () => {
   //     clearInterval(interval);
   //   };
+
   // }, []);
+
+  console.log(noMorePermit, "jljljljlkjljljljljlkjlkj");
 
   const [myInfo, setMyInfo] = useState({
     objectId: null,
@@ -195,7 +198,7 @@ const Card = ({
   const handleCardClick = () => {
     open();
   };
-  console.log(finalData, "and final is", final, "and all done is ", allDone);
+  // console.log(finalData, "and final is", final, "and all done is ", allDone);
 
   // console.log(printFormInfo, "......................");
   // console.log(token);
@@ -211,7 +214,7 @@ const Card = ({
         {
           nozzleNo: obj.nozzle_no,
           fuelType: obj.fuel_type,
-          liter: premitFormInfo.value,
+          liter: parseFloat(premitFormInfo.value).toFixed(2),
           carNo: !premitFormInfo.carNo == "" ? premitFormInfo.carNo : "-",
           vehicleType: premitFormInfo.vehicleType,
           cashType: premitFormInfo.cashType,
@@ -355,6 +358,108 @@ const Card = ({
   };
 
   const handlePermit = async () => {
+    setNopermit(false);
+    if (
+      premitFormInfo.couObjId == undefined &&
+      premitFormInfo.cashType == "Debt"
+    ) {
+      setChooseOne(true);
+      return;
+    } else {
+      if (!permitButtonDisable) {
+        setPermitButtonDisable(true);
+      }
+      setLoading(true);
+      setChooseOne(false);
+
+      // const permitObject = await PermitApi.permit(
+      //   obj.dep_no,
+      //   obj.nozzle_no,
+      //   premitFormInfo.vehicleType,
+      //   premitFormInfo.carNo,
+      //   premitFormInfo.cashType,
+      //   obj.fuel_type,
+      //   premitFormInfo.couObjId,
+      //   obj.daily_price
+      // );
+
+      const permitObject = await localInstance.post(
+        `detail-sale?depNo=${obj.dep_no}&nozzleNo=${obj.nozzle_no}`,
+        {
+          nozzleNo: obj.nozzle_no,
+          fuelType: obj.fuel_type,
+          carNo: !premitFormInfo.carNo == "" ? premitFormInfo.carNo : "-",
+          vehicleType: premitFormInfo.vehicleType,
+          cashType: premitFormInfo.cashType,
+          couObjId: premitFormInfo.couObjId,
+          device: "website",
+        },
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "multipart/form-data", // Adjust content type based on your API requirements
+          },
+        }
+      );
+
+      setLoading(false);
+
+      if (permitObject) {
+        setPermitButtonDisable(false);
+      }
+
+      if (!permitObject.data?.result) {
+        setPermitState(true);
+        // let smg = permitObject.data.msg;
+        // console.log("smg",smg)
+        // smg = smg.split(":");
+        // smg = smg[2];
+        // setVocNumber(smg);
+        setPayloadHistory((prevTopics) => {
+          // Filter out elements that match the value of parseInt(obj.nozzle_no)
+          const updatedTopicsArray = prevTopics.filter(
+            (topic) => topic !== parseInt(obj.nozzle_no)
+          );
+
+          return updatedTopicsArray;
+        });
+        setVisible(false);
+        return;
+      }
+
+      if (permitObject.data?.result) {
+        setHttpCode(true);
+        setFetchObj(permitObject.data.result);
+        setPrintFormInfo({
+          nozzle_no: obj.nozzle_no,
+          objId: permitObject.data.result.screenuObjId,
+        });
+
+        setRealTimeEdit({
+          object_Id: permitObject.data.result._id,
+          cash_type: permitObject.data.result.cashType,
+          car_no: permitObject.data.result.carNo,
+          purpose_of_use: permitObject.data.result.vehicleType,
+          customer_name: premitFormInfo.couName,
+          customer_id: premitFormInfo.cou_id,
+        });
+        setIsPermit(true);
+      }
+
+      if (!permitObject.data?.con) {
+        // auth.logOut();
+      }
+
+      close();
+
+      //  setTimeout(() => {
+      //     setPermitButtonDisable(false);
+      //   }, 2000); // 2000 milliseconds (2 seconds)
+    }
+  };
+  const handlePermit1 = async () => {
+    setPayloadHistory((prevTopics) => [...prevTopics, parseInt(obj.nozzle_no)]);
+    setNopermit(false);
     if (
       premitFormInfo.couObjId == undefined &&
       premitFormInfo.cashType == "Debt"
@@ -518,7 +623,7 @@ const Card = ({
         }
       );
 
-      console.log(fetchIt);
+      // console.log(fetchIt);
 
       // fetchIt();
     }
@@ -527,13 +632,13 @@ const Card = ({
   // useEffect(() => {
   //   console.log(liveDespenserHistory);
   // },[liveDespenserHistory])
-  console.log(noMorePermit, "no more permit and obj.nozzle ", obj.nozzle_no);
+  // console.log(noMorePermit, "no more permit and obj.nozzle ", obj.nozzle_no);
   useEffect(() => {
     if (parseInt(noMorePermit) === parseInt(obj.nozzle_no)) {
       setNopermit(true);
       setVisible(false);
       setNozzleActive(false);
-      console.log("hlhlhhhhhhlhlhlhlhlhlhh");
+      // console.log("hlhlhhhhhhlhlhlhlhlhlhh");
 
       setPayloadHistory((prev) =>
         prev.filter((number) => number !== parseInt(obj.nozzle_no))
@@ -553,12 +658,12 @@ const Card = ({
       setNozzleActive(false);
       setPrice(0);
       setLiter(0);
-      console.log("wk................................................");
+      // console.log("wk................................................");
     }
   }, [finalData]);
 
-  console.log(allDone, "all done in permits");
-  console.log(nozzleActive, "active nozzle active?", obj.nozzle_no);
+  // console.log(allDone, "all done in permits");
+  // console.log(nozzleActive, "active nozzle active?", obj.nozzle_no);
   useEffect(() => {
     if (parseInt(allDone) == parseInt(obj.nozzle_no)) {
       setLiveData("");
@@ -599,7 +704,7 @@ const Card = ({
   //   }
   // }, [active]);
 
-  console.log(liter, price);
+  // console.log(liter, price);
 
   // useEffect(() => {
   //   const updateValues = () => {
@@ -703,19 +808,19 @@ const Card = ({
     open();
   };
 
-  console.log(premitFormInfo, "........................................");
-  console.log(
-    noMorePermit,
-    obj.nozzle_no,
-    // parseInt(noMorePermit) === parseInt(obj.nozzle_no),
-    nozzleActive,
-    ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;",
-    obj.nozzle_no
-  );
+  // console.log(premitFormInfo, "........................................");
+  // console.log(
+  //   noMorePermit,
+  //   obj.nozzle_no,
+  //   // parseInt(noMorePermit) === parseInt(obj.nozzle_no),
+  //   nozzleActive,
+  //   ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;",
+  //   obj.nozzle_no
+  // );
 
   const handleReadyPermit = () => {};
 
-  const color = "#7A4DF1";
+  // const color = "#7A4DF1";
 
   return (
     <>
@@ -793,7 +898,9 @@ const Card = ({
         </div>
         {readyState ? (
           <ReadyState
+            setNopermit={setNopermit}
             obj={obj}
+            handlePermit={handlePermit1}
             setPremitFormInfo={setPremitFormInfo}
             setReadyStateObj={setReadyStateObj}
             selectedItem={readyState}

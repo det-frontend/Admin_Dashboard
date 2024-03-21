@@ -160,8 +160,10 @@ const App = () => {
       ],
     },
   ]);
+
+  console.log("hellolllllllllllllllllllllllllllllllll", reFresh);
   return (
-    <Re.Provider value={{ isAuth, setIsAuth }}>
+    <Re.Provider value={{ reFresh, setReFresh }}>
       <AuthContext.Provider value={{ isAuth, setIsAuth }}>
         <LoadContext.Provider value={{ loading, setLoading }}>
           <RouterProvider

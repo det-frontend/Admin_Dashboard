@@ -9,7 +9,7 @@ import Re from "../../services/Re";
 const DeviceControl = () => {
   const { loading, setLoading } = useContext(LoadContext);
   const client = mqtt.connect("ws://detpos:asdffdsa@192.168.0.100:9001");
-  const { refresh, setRefresh } = useContext(Re);
+  const { reFresh, setReFresh } = useContext(Re);
 
   const [token, setToken] = useState("none");
 
@@ -59,9 +59,9 @@ const DeviceControl = () => {
   const [permitData, setPermitData] = useState([]);
   const [approveData, setApproveData] = useState([]);
 
-  console.log("====================================");
-  console.log("permit req is", permitData, "and approve is ", approveData);
-  console.log("====================================");
+  // console.log("====================================");
+  // console.log("permit req is", permitData, "and approve is ", approveData);
+  // console.log("====================================");
 
   client.on("message", (topic, message) => {
     // message is Buffer
@@ -85,14 +85,14 @@ const DeviceControl = () => {
       //   setPayloadHistory((prevTopics) => [...prevTopics, parseInt(prefix)]);
       // }
       // if (topicCount < 2) {
-      console.log(permitData.includes(parseInt(prefix)), "...............");
+      // console.log(permitData.includes(parseInt(prefix)), "...............");
       if (!permitData.includes(parseInt(prefix))) {
         // Update state only if the prefix is not in permitData
         setPayloadHistory((prevTopics) => [...prevTopics, parseInt(prefix)]);
         setPermitData((prevData) => [...prevData, parseInt(prefix)]);
       }
       // }
-      setNoMorePermit("hhh");
+      setNoMorePermit(e.nozzle);
     }
 
     if (topic === "detpos/local_server") {
@@ -164,6 +164,7 @@ const DeviceControl = () => {
     if (topic.startsWith("detpos/device/Final/") && /[1-8]$/.test(topic)) {
       let data = message.toString().split(regex);
       setFinalData(data[0]);
+      setReFresh(!reFresh);
     }
 
     // if (topic.startsWith("detpos/device/livedata/") && /[1-8]$/.test(topic)) {
@@ -191,7 +192,12 @@ const DeviceControl = () => {
     // client.end();
   });
 
-  console.log(data_g.map((e) => parseInt(e.nozzle_no)));
+  // console.log(data_g.map((e) => parseInt(e.nozzle_no)));
+
+  // console.log(
+  //   reFresh,
+  //   "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+  // );
 
   return (
     <>
